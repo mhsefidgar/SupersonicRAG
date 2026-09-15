@@ -3,13 +3,13 @@ WORKDIR /src
 COPY Cargo.toml Cargo.lock* ./
 COPY crates ./crates
 COPY apps ./apps
-RUN cargo build --release -p swiftrag-api
+RUN cargo build --release -p supersonicrag-api
 
 FROM debian:bookworm-slim
-RUN useradd --create-home --uid 10001 swiftrag
+RUN useradd --create-home --uid 10001 supersonicrag
 WORKDIR /app
-COPY --from=build /src/target/release/swiftrag-api /usr/local/bin/swiftrag-api
-COPY config ./config
-USER swiftrag
+RUN mkdir -p /data/knowledge && chown -R supersonicrag:supersonicrag /data/knowledge
+COPY --from=build /src/target/release/supersonicrag-api /usr/local/bin/supersonicrag-api
+USER supersonicrag
 EXPOSE 8080
-CMD ["/usr/local/bin/swiftrag-api"]
+CMD ["/usr/local/bin/supersonicrag-api"]
