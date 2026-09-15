@@ -10,6 +10,7 @@ use sha2::{Digest, Sha256};
 use std::{
     path::{Path, PathBuf},
     sync::{Arc, RwLock},
+    sync::atomic::{AtomicU64, Ordering},
 };
 use tokio::{fs, io::AsyncWriteExt};
 use tower_http::cors::{Any, CorsLayer};
@@ -19,6 +20,7 @@ const MAX_REQUEST_BYTES: usize = 50 * 1024 * 1024;
 const MAX_FILE_BYTES: usize = 25 * 1024 * 1024;
 const MAX_FILES_PER_REQUEST: usize = 20;
 const ALLOWED_EXTENSIONS: &[&str] = &["pdf", "docx", "txt", "md", "csv", "json", "html", "htm"];
+static UPLOAD_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Clone)]
 struct AppState {
@@ -109,15 +111,12 @@ async fn list_documents(
 
     while let Some(entry) = dir.next_entry().await.map_err(internal_error)? {
         let path = entry.path();
-        if !path.is_file() || path.file_name().and_then(|x| x.to_str()) == Some("manifest.jsonl") {
+        let file_name = path.file_name().and_then(|x| x.to_str()).unwrap_or_default();
+        if !path.is_file() || file_name == "manifest.jsonl" || file_name.starts_with('.') {
             continue;
         }
         let metadata = entry.metadata().await.map_err(internal_error)?;
-        let name = path
-            .file_name()
-            .and_then(|x| x.to_str())
-            .unwrap_or("document")
-            .to_owned();
+        let name = file_name.to_owned();
         let id = name.split('-').next().unwrap_or_default().to_owned();
         let extension = extension_for(&name).unwrap_or("unknown").to_owned();
         entries.push(DocumentRecord {
@@ -165,9 +164,10 @@ async fn upload(
             extension_for(&safe_name).ok_or_else(|| bad_request("unsupported file type"))?;
         let mut hasher = Sha256::new();
         let mut bytes_written = 0usize;
+        let sequence = UPLOAD_SEQUENCE.fetch_add(1, Ordering::Relaxed);
         let temp_path = state
             .storage_root
-            .join(format!(".upload-{}-{}", std::process::id(), count));
+            .join(format!(".upload-{}-{}", std::process::id(), sequence));
         let mut file = fs::File::create(&temp_path).await.map_err(internal_error)?;
 
         while let Some(chunk) = field
