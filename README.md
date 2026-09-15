@@ -119,4 +119,4 @@ Use Rust for orchestration, parallelize independent retrieval stages, batch embe
 
 ## License
 
-Apache-2.0.
+GPL-3.0 license.
