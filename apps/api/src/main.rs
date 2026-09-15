@@ -112,7 +112,10 @@ async fn list_documents(
 
     while let Some(entry) = dir.next_entry().await.map_err(internal_error)? {
         let path = entry.path();
-        let file_name = path.file_name().and_then(|x| x.to_str()).unwrap_or_default();
+        let file_name = path
+            .file_name()
+            .and_then(|x| x.to_str())
+            .unwrap_or_default();
         if !path.is_file() || file_name == "manifest.jsonl" || file_name.starts_with('.') {
             continue;
         }
@@ -166,9 +169,10 @@ async fn upload(
         let mut hasher = Sha256::new();
         let mut bytes_written = 0usize;
         let sequence = UPLOAD_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-        let temp_path = state
-            .storage_root
-            .join(format!(".upload-{}-{}", std::process::id(), sequence));
+        let temp_path =
+            state
+                .storage_root
+                .join(format!(".upload-{}-{}", std::process::id(), sequence));
         let mut file = fs::File::create(&temp_path).await.map_err(internal_error)?;
 
         while let Some(chunk) = field
