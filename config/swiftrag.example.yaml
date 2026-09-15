@@ -1,0 +1,39 @@
+server:
+  host: 0.0.0.0
+  port: 8080
+
+retrieval:
+  dense_enabled: true
+  dense_top_k: 50
+  bm25_enabled: true
+  bm25_top_k: 50
+  sparse_enabled: false
+  sparse_top_k: 50
+  rrf_enabled: true
+  rrf_k: 60
+  reranker_enabled: true
+  reranker_top_k: 8
+  score_threshold: 0.0
+  parent_child_enabled: true
+  parent_max_tokens: 2000
+  query_rewrite_enabled: true
+  semantic_cache_enabled: true
+  context_max_tokens: 6000
+
+ingestion:
+  chunk_size: 600
+  chunk_overlap: 100
+  max_concurrency: 8
+
+evaluation:
+  k_values: [1, 3, 5, 10]
+  enable_answer_metrics: true
+  enable_faithfulness: true
+  enable_citation_metrics: true
+
+security:
+  require_auth: false
+  enforce_tenant_filter: true
+  enforce_document_acl: true
+  prompt_injection_guard: true
+  audit_logging: true
