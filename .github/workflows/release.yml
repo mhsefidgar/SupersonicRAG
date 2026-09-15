@@ -5,6 +5,12 @@ on:
     tags:
       - 'v*.*.*'
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing release tag to build and publish (for example v0.1.0)'
+        required: true
+        default: 'v0.1.0'
+        type: string
 
 permissions:
   contents: write
@@ -47,8 +53,10 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Checkout
+      - name: Checkout release tag
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -115,7 +123,7 @@ jobs:
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          generate_release_notes: true
+          tag_name: ${{ inputs.release_tag || github.ref_name }}
+          generate_release_notes: false
           overwrite_files: true
           files: dist/*
