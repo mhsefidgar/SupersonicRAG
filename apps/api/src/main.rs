@@ -143,7 +143,11 @@ async fn upload(
     let mut documents = Vec::new();
     let mut count = 0usize;
 
-    while let Some(mut field) = multipart.next_field().await.map_err(bad_request)? {
+    while let Some(mut field) = multipart
+        .next_field()
+        .await
+        .map_err(|err| bad_request(err.to_string()))?
+    {
         if field.name() != Some("files") {
             continue;
         }
@@ -166,7 +170,11 @@ async fn upload(
             .join(format!(".upload-{}-{}", std::process::id(), count));
         let mut file = fs::File::create(&temp_path).await.map_err(internal_error)?;
 
-        while let Some(chunk) = field.chunk().await.map_err(bad_request)? {
+        while let Some(chunk) = field
+            .chunk()
+            .await
+            .map_err(|err| bad_request(err.to_string()))?
+        {
             bytes_written = bytes_written.saturating_add(chunk.len());
             if bytes_written > MAX_FILE_BYTES {
                 let _ = fs::remove_file(&temp_path).await;
