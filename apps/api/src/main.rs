@@ -18,8 +18,7 @@ use tracing::{info, warn};
 const MAX_REQUEST_BYTES: usize = 50 * 1024 * 1024;
 const MAX_FILE_BYTES: usize = 25 * 1024 * 1024;
 const MAX_FILES_PER_REQUEST: usize = 20;
-const ALLOWED_EXTENSIONS: &[&str] =
-    &["pdf", "docx", "txt", "md", "csv", "json", "html", "htm"];
+const ALLOWED_EXTENSIONS: &[&str] = &["pdf", "docx", "txt", "md", "csv", "json", "html", "htm"];
 
 #[derive(Clone)]
 struct AppState {
@@ -87,13 +86,7 @@ async fn health() -> Json<Health> {
 }
 
 async fn config(State(state): State<AppState>) -> Json<RagConfig> {
-    Json(
-        state
-            .config
-            .read()
-            .expect("config lock poisoned")
-            .clone(),
-    )
+    Json(state.config.read().expect("config lock poisoned").clone())
 }
 
 async fn update_config(
@@ -116,9 +109,7 @@ async fn list_documents(
 
     while let Some(entry) = dir.next_entry().await.map_err(internal_error)? {
         let path = entry.path();
-        if !path.is_file()
-            || path.file_name().and_then(|x| x.to_str()) == Some("manifest.jsonl")
-        {
+        if !path.is_file() || path.file_name().and_then(|x| x.to_str()) == Some("manifest.jsonl") {
             continue;
         }
         let metadata = entry.metadata().await.map_err(internal_error)?;
@@ -166,16 +157,14 @@ async fn upload(
             .ok_or_else(|| bad_request("each file must have a filename"))?
             .to_owned();
         let safe_name = sanitize_filename(&original_name)?;
-        let extension = extension_for(&safe_name)
-            .ok_or_else(|| bad_request("unsupported file type"))?;
+        let extension =
+            extension_for(&safe_name).ok_or_else(|| bad_request("unsupported file type"))?;
         let mut hasher = Sha256::new();
         let mut bytes_written = 0usize;
         let temp_path = state
             .storage_root
             .join(format!(".upload-{}-{}", std::process::id(), count));
-        let mut file = fs::File::create(&temp_path)
-            .await
-            .map_err(internal_error)?;
+        let mut file = fs::File::create(&temp_path).await.map_err(internal_error)?;
 
         while let Some(chunk) = field.chunk().await.map_err(bad_request)? {
             bytes_written = bytes_written.saturating_add(chunk.len());
