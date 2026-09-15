@@ -388,5 +388,7 @@ async fn main() {
         .await
         .expect("failed to bind API listener");
     info!(%address, "SupersonicRAG API listening");
-    axum::serve(listener, app).await.expect("API server failed");
+    axum::serve(listener, app)
+        .await
+        .expect("API server failed");
 }
