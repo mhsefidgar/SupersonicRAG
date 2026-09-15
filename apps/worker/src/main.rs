@@ -8,6 +8,8 @@ async fn main() {
         .init();
 
     tracing::info!("SupersonicRAG worker started");
-    tokio::signal::ctrl_c().await.expect("failed to install ctrl-c handler");
+    tokio::signal::ctrl_c()
+        .await
+        .expect("failed to install ctrl-c handler");
     tracing::info!("SupersonicRAG worker stopped");
 }
