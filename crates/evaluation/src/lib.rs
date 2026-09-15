@@ -70,11 +70,7 @@ pub fn ndcg(r: &[f64], k: usize) -> f64 {
     let mut ideal = r.to_vec();
     ideal.sort_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal));
     let b = dcg(&ideal, k);
-    if b == 0.0 {
-        0.0
-    } else {
-        a / b
-    }
+    if b == 0.0 { 0.0 } else { a / b }
 }
 
 pub fn accuracy(a: &[bool], b: &[bool]) -> f64 {
