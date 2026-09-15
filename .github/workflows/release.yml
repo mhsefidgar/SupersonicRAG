@@ -7,9 +7,14 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Existing release tag to build and publish (for example v0.1.0)'
+        description: 'Existing release tag to publish (for example v0.1.0)'
         required: true
         default: 'v0.1.0'
+        type: string
+      release_ref:
+        description: 'Git ref to build (use main for the current release-ready code)'
+        required: true
+        default: 'main'
         type: string
 
 permissions:
@@ -53,10 +58,10 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Checkout release tag
+      - name: Checkout release source
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.release_tag || github.ref }}
+          ref: ${{ inputs.release_ref || github.ref }}
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
