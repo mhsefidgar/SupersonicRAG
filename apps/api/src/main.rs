@@ -1,17 +1,17 @@
 use axum::{
+    Json, Router,
     extract::{DefaultBodyLimit, Multipart, State},
-    http::{header::CONTENT_TYPE, HeaderValue, Method, StatusCode},
+    http::{HeaderValue, Method, StatusCode, header::CONTENT_TYPE},
     response::{IntoResponse, Response},
     routing::{get, post},
-    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
     path::{Path, PathBuf},
     sync::{
-        atomic::{AtomicU64, Ordering},
         Arc,
+        atomic::{AtomicU64, Ordering},
     },
 };
 use tokio::{fs, io::AsyncWriteExt};
@@ -154,30 +154,22 @@ fn sanitize_filename(name: &str) -> Result<String, ApiError> {
 
 fn validate_config(config: &RagConfig) -> Result<(), ApiError> {
     if config.dense_top_k == 0 || config.dense_top_k > 200 {
-        return Err(bad_request(
-            "dense_top_k must be between 1 and 200",
-        ));
+        return Err(bad_request("dense_top_k must be between 1 and 200"));
     }
     if config.bm25_top_k == 0 || config.bm25_top_k > 200 {
         return Err(bad_request("bm25_top_k must be between 1 and 200"));
     }
     if config.sparse_top_k == 0 || config.sparse_top_k > 200 {
-        return Err(bad_request(
-            "sparse_top_k must be between 1 and 200",
-        ));
+        return Err(bad_request("sparse_top_k must be between 1 and 200"));
     }
     if config.rrf_k == 0 || config.rrf_k > 200 {
         return Err(bad_request("rrf_k must be between 1 and 200"));
     }
     if config.reranker_top_n == 0 || config.reranker_top_n > 50 {
-        return Err(bad_request(
-            "reranker_top_n must be between 1 and 50",
-        ));
+        return Err(bad_request("reranker_top_n must be between 1 and 50"));
     }
     if !(0.0..=1.0).contains(&config.score_threshold) {
-        return Err(bad_request(
-            "score_threshold must be between 0 and 1",
-        ));
+        return Err(bad_request("score_threshold must be between 0 and 1"));
     }
     if !(500..=32000).contains(&config.context_budget_tokens) {
         return Err(bad_request(
@@ -379,11 +371,7 @@ async fn main() {
     let cors = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST])
         .allow_headers([CONTENT_TYPE])
-        .allow_origin(
-            "*"
-                .parse::<HeaderValue>()
-                .expect("valid CORS origin"),
-        );
+        .allow_origin("*".parse::<HeaderValue>().expect("valid CORS origin"));
     let app = Router::new()
         .route("/health", get(health))
         .route("/v1/config", get(get_config).post(update_config))
@@ -401,7 +389,5 @@ async fn main() {
         .await
         .expect("failed to bind API listener");
     info!(%address, "SupersonicRAG API listening");
-    axum::serve(listener, app)
-        .await
-        .expect("API server failed");
+    axum::serve(listener, app).await.expect("API server failed");
 }
