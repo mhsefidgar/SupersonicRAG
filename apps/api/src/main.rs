@@ -1,15 +1,18 @@
 use axum::{
+    Json, Router,
     extract::{DefaultBodyLimit, Multipart, State},
-    http::{header::CONTENT_TYPE, HeaderValue, Method, StatusCode},
+    http::{HeaderValue, Method, StatusCode, header::CONTENT_TYPE},
     response::{IntoResponse, Response},
     routing::{get, post},
-    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
     path::{Path, PathBuf},
-    sync::{atomic::{AtomicU64, Ordering}, Arc},
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
 };
 use tokio::{fs, io::AsyncWriteExt};
 use tower_http::cors::CorsLayer;
@@ -92,7 +95,11 @@ struct ApiError {
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
-        (self.status, Json(serde_json::json!({ "error": self.message }))).into_response()
+        (
+            self.status,
+            Json(serde_json::json!({ "error": self.message })),
+        )
+            .into_response()
     }
 }
 
@@ -112,7 +119,12 @@ fn internal_error(error: impl std::fmt::Display) -> ApiError {
 }
 
 fn extension_for(name: &str) -> Option<&'static str> {
-    match Path::new(name).extension()?.to_str()?.to_ascii_lowercase().as_str() {
+    match Path::new(name)
+        .extension()?
+        .to_str()?
+        .to_ascii_lowercase()
+        .as_str()
+    {
         "pdf" => Some("pdf"),
         "docx" => Some("docx"),
         "txt" => Some("txt"),
@@ -158,13 +170,17 @@ fn validate_config(config: &RagConfig) -> Result<(), ApiError> {
         return Err(bad_request("score_threshold must be between 0 and 1"));
     }
     if !(500..=32000).contains(&config.context_budget_tokens) {
-        return Err(bad_request("context_budget_tokens must be between 500 and 32000"));
+        return Err(bad_request(
+            "context_budget_tokens must be between 500 and 32000",
+        ));
     }
     if !(100..=4000).contains(&config.chunk_size) {
         return Err(bad_request("chunk_size must be between 100 and 4000"));
     }
     if config.chunk_overlap > 1000 || config.chunk_overlap >= config.chunk_size {
-        return Err(bad_request("chunk_overlap must be <= 1000 and less than chunk_size"));
+        return Err(bad_request(
+            "chunk_overlap must be <= 1000 and less than chunk_size",
+        ));
     }
     Ok(())
 }
@@ -216,11 +232,15 @@ async fn update_config(
     Ok(Json(config.clone()))
 }
 
-async fn list_documents(State(state): State<AppState>) -> Result<Json<Vec<DocumentRecord>>, ApiError> {
+async fn list_documents(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<DocumentRecord>>, ApiError> {
     fs::create_dir_all(&state.storage_root)
         .await
         .map_err(internal_error)?;
-    let mut entries = fs::read_dir(&state.storage_root).await.map_err(internal_error)?;
+    let mut entries = fs::read_dir(&state.storage_root)
+        .await
+        .map_err(internal_error)?;
     let mut documents = Vec::new();
     while let Some(entry) = entries.next_entry().await.map_err(internal_error)? {
         let path = entry.path();
@@ -283,10 +303,13 @@ async fn upload_documents(
         let mut hasher = Sha256::new();
         let mut bytes_written = 0usize;
         let sequence = UPLOAD_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-        let temp_path = state
-            .storage_root
-            .join(format!(".upload-{}-{}", std::process::id(), sequence));
-        let mut file = fs::File::create(&temp_path).await.map_err(internal_error)?;
+        let temp_path =
+            state
+                .storage_root
+                .join(format!(".upload-{}-{}", std::process::id(), sequence));
+        let mut file = fs::File::create(&temp_path)
+            .await
+            .map_err(internal_error)?;
 
         while let Some(chunk) = field
             .chunk()
@@ -368,7 +391,5 @@ async fn main() {
         .await
         .expect("failed to bind API listener");
     info!(%address, "SupersonicRAG API listening");
-    axum::serve(listener, app)
-        .await
-        .expect("API server failed");
+    axum::serve(listener, app).await.expect("API server failed");
 }
