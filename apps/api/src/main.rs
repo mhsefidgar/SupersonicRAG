@@ -303,12 +303,11 @@ async fn upload_documents(
         let mut hasher = Sha256::new();
         let mut bytes_written = 0usize;
         let sequence = UPLOAD_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-        let temp_path = state
-            .storage_root
-            .join(format!(".upload-{}-{}", std::process::id(), sequence));
-        let mut file = fs::File::create(&temp_path)
-            .await
-            .map_err(internal_error)?;
+        let temp_path =
+            state
+                .storage_root
+                .join(format!(".upload-{}-{}", std::process::id(), sequence));
+        let mut file = fs::File::create(&temp_path).await.map_err(internal_error)?;
         while let Some(chunk) = field
             .chunk()
             .await
