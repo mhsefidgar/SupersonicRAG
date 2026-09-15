@@ -30,7 +30,10 @@ services:
     environment:
       DATABASE_URL: postgres://supersonicrag:supersonicrag_dev@postgres:5432/supersonicrag
       QDRANT_URL: http://qdrant:6333
+      SUPERSONICRAG_STORAGE_DIR: /data/knowledge
     ports: ["8080:8080"]
+    volumes:
+      - knowledge_data:/data/knowledge
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,3 +50,4 @@ services:
 volumes:
   postgres_data:
   qdrant_data:
+  knowledge_data:
