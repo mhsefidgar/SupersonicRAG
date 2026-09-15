@@ -307,9 +307,7 @@ async fn upload_documents(
             state
                 .storage_root
                 .join(format!(".upload-{}-{}", std::process::id(), sequence));
-        let mut file = fs::File::create(&temp_path)
-            .await
-            .map_err(internal_error)?;
+        let mut file = fs::File::create(&temp_path).await.map_err(internal_error)?;
 
         while let Some(chunk) = field
             .chunk()
