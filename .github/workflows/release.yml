@@ -1,0 +1,119 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive: zip
+          - name: windows-i686
+            os: windows-latest
+            target: i686-pc-windows-msvc
+            archive: zip
+          - name: macos-x86_64
+            os: macos-13
+            target: x86_64-apple-darwin
+            archive: tar.gz
+          - name: macos-aarch64
+            os: macos-14
+            target: aarch64-apple-darwin
+            archive: tar.gz
+          - name: linux-x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive: tar.gz
+          - name: linux-aarch64
+            os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            archive: tar.gz
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Linux ARM64 cross toolchain
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Generate lockfile
+        run: cargo generate-lockfile
+
+      - name: Build release binaries
+        shell: bash
+        env:
+          CARGO_BUILD_TARGET: ${{ matrix.target }}
+        run: |
+          cargo build --release --target "$CARGO_BUILD_TARGET" -p supersonicrag-api -p supersonicrag-worker
+
+      - name: Package Unix
+        if: matrix.archive == 'tar.gz'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p staging/SupersonicRAG-${{ matrix.name }}
+          cp "target/${{ matrix.target }}/release/supersonicrag-api" staging/SupersonicRAG-${{ matrix.name }}/supersonicrag-api
+          cp "target/${{ matrix.target }}/release/supersonicrag-worker" staging/SupersonicRAG-${{ matrix.name }}/supersonicrag-worker
+          cp README.md LICENSE staging/SupersonicRAG-${{ matrix.name }}/
+          tar -C staging -czf "SupersonicRAG-${{ matrix.name }}.tar.gz" "SupersonicRAG-${{ matrix.name }}"
+
+      - name: Package Windows
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          $dir = "staging/SupersonicRAG-${{ matrix.name }}"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/supersonicrag-api.exe" "$dir/supersonicrag-api.exe"
+          Copy-Item "target/${{ matrix.target }}/release/supersonicrag-worker.exe" "$dir/supersonicrag-worker.exe"
+          Copy-Item README.md,LICENSE $dir
+          Compress-Archive -Path $dir -DestinationPath "SupersonicRAG-${{ matrix.name }}.zip" -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SupersonicRAG-${{ matrix.name }}
+          path: SupersonicRAG-${{ matrix.name }}.*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download packaged artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: SupersonicRAG-*
+          merge-multiple: true
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: dist/SupersonicRAG-*
