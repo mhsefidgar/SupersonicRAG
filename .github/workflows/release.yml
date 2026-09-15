@@ -81,6 +81,7 @@ jobs:
         shell: bash
         env:
           CARGO_BUILD_TARGET: ${{ matrix.target }}
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && 'aarch64-linux-gnu-gcc' || '' }}
         run: |
           cargo build --release --target "$CARGO_BUILD_TARGET" -p supersonicrag-api -p supersonicrag-worker
 
